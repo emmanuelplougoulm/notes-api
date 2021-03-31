@@ -2,6 +2,8 @@ require("dotenv").config();
 //import fastify & mongoose
 const fastify = require("fastify");
 const mongoose = require("mongoose");
+const notesRoutes = require("./src/routes/noteRoutes");
+const contentRangeHook = require("./src/hooks/contentRangeHook");
 
 const app = fastify();
 
@@ -17,11 +19,17 @@ const options = {
   // family: 4 // Use IPv4, skip trying IPv6
 };
 
-try {
-  mongoose.connect(process.env.DB_PATH, options);
-} catch (e) {
-  console.error(e);
+async function connectDb() {
+  try {
+    await mongoose.connect(process.env.DB_PATH, options);
+    console.log("Successfully connected to DB");
+  } catch (err) {
+    console.error(err);
+    console.log("Failed connecting to DB");
+  }
 }
+
+connectDb();
 
 app.get("/", (request, reply) => {
   try {
@@ -30,6 +38,9 @@ app.get("/", (request, reply) => {
     console.error(error);
   }
 });
+
+app.addHook("preHandler", contentRangeHook);
+notesRoutes(app);
 
 app.listen(5000, (err, address) => {
   if (err) {
